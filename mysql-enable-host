@@ -1,0 +1,77 @@
+
+
+#1.找出hostid
+#2.查找关键字，能证明机器出过图
+#3.构建语句 找出 出过图的机器 并建立list （按需，本例是找提定的机器进行开启）
+#4.构建语句 启用list中所列的 机器
+
+
+#1.找出hostid
+mysql> select hostid,host from  hosts where host like "1401";
++--------+---------+
+| hostid | host    |
++--------+---------+
+|  14750 | 141     |
++--------+---------+
+1 row in set (0.02 sec)
+
+
+#2.查找关键字，能证明机器出过图   本例使用 （Interface Vl2）为关键字  对应语句'%Vl%'
+mysql> SELECT hostid,itemid,name,key_  from items where hostid=14750 and name like '%Vl%' limit 5;
++--------+--------+-------------------------------------------------------------------------------------------+-------------------------------------+
+| hostid | itemid | name                                                                                      | key_                                |
++--------+--------+-------------------------------------------------------------------------------------------+-------------------------------------+
+|  14750 | 552434 | Interface Vl2  | net.if.in.discards[ifInDiscards.18] |
+|+--------+--------+-------------------------------------------------------------------------------------------+-------------------------------------+
+5 rows in set (0.01 sec)
+
+
+#3.构建语句 找出 出过图的机器 并建立list
+构建联合语句：
+select a.hostid,a.host,b.name from  hosts a    
+INNER  join items b 
+on a.hostid=b.hostid where a.host like '1401' 
+and b.name like '%Vl%' limit 5;
+
+如下：
+如匹配条件即有显示
+mysql> select a.hostid,a.host,b.name from  hosts a    
+    -> INNER  join items b 
+    -> on a.hostid=b.hostid where a.host like '1401' 
+    -> and b.name like '%Vl%' limit 5;
++--------+---------+-------------------------------------------------------------------------------------------+
+| hostid | host    | name                                                                                      |
++--------+---------+-------------------------------------------------------------------------------------------+
+|  14750 | 1401 | Interface Vl20  |
++--------+---------+-------------------------------------------------------------------------------------------+
+5 rows in set (0.00 sec)
+如不匹配条件  显示为空
+mysql> select a.hostid,a.host,b.name from  hosts a     INNER  join items b  on a.hostid=b.hostid where a.host like '1420020'  and b.name like '%Vl%' limit 5;
+Empty set (0.01 sec)
+
+
+脚本如下：
+#!/bin/bash
+#有图像的host进行开启
+for i in `cat list.log`
+do
+echo " select a.hostid,a.host,b.name from  hosts a     INNER  join items b  on a.hostid=b.hostid where a.host like '$i'  and b.name like '%Vl%' limit 1;" >> en-sqllist.sql
+done
+
+执行生成的脚本
+mysql -uzabbix -p -h127.0.0.1 zabbix  < en-sqllist.sql > en-sqllist.log
+
+抠出  en-sqllist.log 中的host信息 形成fix.list
+
+#4.构建语句 启用list中所列的 机器
+#!/bin/bash
+
+for i in `cat fix.list`
+do
+echo "UPDATE hosts SET status=0 WHERE host='$i';" >> add-en-sqllist.sql
+done
+
+执行生成的脚本
+mysql -uzabbix -p -h127.0.0.1 zabbix < add-en-sqllist.sql 
+
+在zabbix上查看是否成功
