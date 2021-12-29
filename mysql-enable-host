@@ -4,7 +4,7 @@
 #2.查找关键字，能证明机器出过图
 #3.构建语句 找出 出过图的机器 并建立list （按需，本例是找提定的机器进行开启）
 #4.构建语句 启用list中所列的 机器
-
+status=0 为enable
 
 #1.找出hostid
 mysql> select hostid,host from  hosts where host like "1401";
