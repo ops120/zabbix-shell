@@ -74,4 +74,5 @@ done
 执行生成的脚本
 mysql -uzabbix -p -h127.0.0.1 zabbix < add-en-sqllist.sql 
 
+
 在zabbix上查看是否成功
